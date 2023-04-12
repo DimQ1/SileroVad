@@ -1,10 +1,19 @@
-using System;
 using SileroVad.Properties;
 
 namespace SileroVad
 {
-    public static class Vad
+    public class Vad: IDisposable
     {
+        private readonly SileroVadModel _model;
+        private bool disposedValue;
+
+        public Vad()
+        {
+
+            this._model = new SileroVadModel(Resources.silero_vad);
+
+        }
+
         // The code below is adapted from https://github.com/snakers4/silero-vad.
         // This method is used for splitting long audios into speech chunks using silero VAD.
         //     Args:
@@ -26,7 +35,7 @@ namespace SileroVad
         //     Returns:
         //       List of dicts containing begin and end samples of each speech chunk.
         //     
-        public static List<VadSpeech> GetSpeechTimestamps(
+        public List<VadSpeech> GetSpeechTimestamps(
             ReadOnlySpan<float> audio,
             float threshold = 0.5f,
             int min_speech_duration_ms = 50,
@@ -48,14 +57,13 @@ namespace SileroVad
             var min_silence_samples = sampling_rate * min_silence_duration_ms / 1000;
             var min_silence_samples_at_max_speech = sampling_rate * 98 / 1000;
             var audio_length_samples = audio.Length;
-            var model = GetVadModel();
-            var (hTensor, cTensor, sampleRateTensor) = model.GetInitialStateTensors(batchSize, sampling_rate);
+            var (hTensor, cTensor, sampleRateTensor) = _model.GetInitialStateTensors(batchSize, sampling_rate);
             var state = (hTensor, cTensor);
             var speech_probs = new List<float>();
 
             foreach (var chunk in Enumerable.Range(0, audio.Length).Chunk(window_size_samples))
             {
-                (var speech_prob, state) = model.DetectSpeach(audio.Slice(chunk.First(), chunk.Length), state, sampleRateTensor, batchSize);
+                (var speech_prob, state) = _model.DetectSpeach(audio.Slice(chunk.First(), chunk.Length), state, sampleRateTensor, batchSize);
                 speech_probs.Add(speech_prob);
             }
 
@@ -177,15 +185,31 @@ namespace SileroVad
             return speeches;
         }
 
-        public static IEnumerable<float> GetSpeechSamples(float[] audio, List<VadSpeech> vadSpeeches)
+        protected virtual void Dispose(bool disposing)
         {
-            return vadSpeeches.SelectMany(speech => audio[speech.Start..speech.End]);
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                   this._model.Dispose();
+                }
+
+                disposedValue = true;
+            }
         }
 
-        // Returns the VAD model instance.
-        private static SileroVadModel GetVadModel()
+        // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        ~Vad()
         {
-            return new SileroVadModel(Resources.silero_vad);
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: false);
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
