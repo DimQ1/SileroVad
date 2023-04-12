@@ -7,11 +7,10 @@ using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using SileroVad;
 
-namespace WhisperONNX
-{
-    public static class FileReader
+ public static class FileReader
     {
         private static int SAMPLE_RATE = 16000;
+        private static Vad vad = new Vad();
 
         public static void VadFile(string filePath)
         {
@@ -47,9 +46,9 @@ namespace WhisperONNX
 
             sampleProvider.Read(array, 0, array.Length);
 
-            List<VadSpeech> resul = Vad.GetSpeechTimestamps(array, min_silence_duration_ms: 500, threshold: 0.4f);
+            List<VadSpeech> resul = vad.GetSpeechTimestamps(array, min_silence_duration_ms: 500, threshold: 0.5f);
 
-            var audioSpeech = Vad.GetSpeechSamples(array, resul);
+            var audioSpeech = VadHelper.GetSpeechSamples(array, resul);
 
             var fileTrim = Path.ChangeExtension(filePath, "speech") + ".wav";
 
@@ -75,7 +74,6 @@ namespace WhisperONNX
             return (int)(time.TotalSeconds * (double)waveFormat.SampleRate) * waveFormat.Channels;
         }
     }
-}
 ```
 
 
