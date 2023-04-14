@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
+		<Authors>Dzmitry Shchamialiou</Authors>
+		<PackageProjectUrl>https://github.com/DimQ1/SileroVad</PackageProjectUrl>
+		<EnablePackageValidation>true</EnablePackageValidation>
 		<TargetFrameworks>net6.0;net7.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -8,6 +10,8 @@
 		<AssemblyVersion>1.1.0.1</AssemblyVersion>
 		<FileVersion>1.1.0.1</FileVersion>
 		<PackageVersion>1.1.0.1</PackageVersion>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -35,4 +39,8 @@
 		</None>
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- Add a LICENSE.txt next to the csproj -->
+		<None Include="LICENSE.txt" Pack="true" PackagePath="" />
+	</ItemGroup>
 </Project>
