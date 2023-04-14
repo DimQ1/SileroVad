@@ -2,6 +2,9 @@
 	<PropertyGroup>
 		<Authors>Dzmitry Shchamialiou</Authors>
 		<PackageProjectUrl>https://github.com/DimQ1/SileroVad</PackageProjectUrl>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/DimQ1/SileroVad.git</RepositoryUrl>
+		<RepositoryBranch>master</RepositoryBranch>
 		<EnablePackageValidation>true</EnablePackageValidation>
 		<TargetFrameworks>net6.0;net7.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -13,7 +16,7 @@
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-		<PackageTags>VAD, library, onnx, silero</PackageTags>
+		<PackageTags>vad, library, onnx, silero</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
