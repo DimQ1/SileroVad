@@ -1,5 +1,4 @@
-﻿using System.IO;
-using Microsoft.ML.OnnxRuntime;
+﻿using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace SileroVad
@@ -7,26 +6,17 @@ namespace SileroVad
     public class SileroVadModel : IDisposable
     {
         private readonly InferenceSession session;
-        private readonly SessionOptions opts;
         private bool disposedValue;
 
-
-        private SileroVadModel()
+        public SileroVadModel(byte[] model)
         {
-            this.opts = new SessionOptions();
+            var opts = new SessionOptions();
+
             opts.InterOpNumThreads = 1;
             opts.IntraOpNumThreads = 1;
             opts.LogSeverityLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_FATAL;
-        }
 
-        public SileroVadModel(byte[] model) : this()
-        {
-            this.session = new InferenceSession(model, this.opts);
-        }
-
-        public SileroVadModel(string path) : this()
-        {
-            this.session = new InferenceSession(path, this.opts);
+            this.session = new InferenceSession(model, opts);
         }
 
         public (Tensor<float> h, Tensor<float> c, Tensor<long> sr) GetInitialStateTensors(int batchSize, long sampleRate)
@@ -76,7 +66,7 @@ namespace SileroVad
             {
                 if (disposing)
                 {
-                    session.Dispose();
+                    this.session.Dispose();
                 }
 
                 disposedValue = true;
@@ -85,7 +75,6 @@ namespace SileroVad
 
         ~SileroVadModel()
         {
-            session.Dispose();
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: false);
         }
