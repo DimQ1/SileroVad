@@ -13,6 +13,7 @@
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<PackageTags>VAD, library, onnx, silero</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
