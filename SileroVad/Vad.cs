@@ -2,16 +2,14 @@ using SileroVad.Properties;
 
 namespace SileroVad
 {
-    public class Vad: IDisposable
+    public class Vad : IDisposable
     {
         private readonly SileroVadModel _model;
         private bool disposedValue;
 
         public Vad()
         {
-
             this._model = new SileroVadModel(Resources.silero_vad);
-
         }
 
         // The code below is adapted from https://github.com/snakers4/silero-vad.
@@ -57,15 +55,27 @@ namespace SileroVad
             var min_silence_samples = sampling_rate * min_silence_duration_ms / 1000;
             var min_silence_samples_at_max_speech = sampling_rate * 98 / 1000;
             var audio_length_samples = audio.Length;
+            var speech_probs = new List<float>();
             var (hTensor, cTensor, sampleRateTensor) = _model.GetInitialStateTensors(batchSize, sampling_rate);
             var state = (hTensor, cTensor);
-            var speech_probs = new List<float>();
 
             foreach (var chunk in Enumerable.Range(0, audio.Length).Chunk(window_size_samples))
             {
-                (var speech_prob, state) = _model.DetectSpeach(audio.Slice(chunk.First(), chunk.Length), state, sampleRateTensor, batchSize);
+                var chankBytes = audio.Slice(chunk.First(), chunk.Length);
+
+                if(chankBytes.Length < window_size_samples)
+                {
+                    var lastChankBytes =new float[window_size_samples];
+
+                    chankBytes.CopyTo(lastChankBytes);
+
+                    chankBytes = new ReadOnlySpan<float>(lastChankBytes);
+                }
+
+                (var speech_prob, state) = _model.DetectSpeach(chankBytes, state, sampleRateTensor, batchSize);
                 speech_probs.Add(speech_prob);
             }
+
 
             var triggered = false;
             var speeches = new List<VadSpeech>();
@@ -191,7 +201,7 @@ namespace SileroVad
             {
                 if (disposing)
                 {
-                   this._model.Dispose();
+                    this._model.Dispose();
                 }
 
                 disposedValue = true;
