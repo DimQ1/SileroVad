@@ -17,6 +17,7 @@
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>vad, library, onnx, silero</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -47,5 +48,6 @@
 	<ItemGroup>
 		<!-- Add a LICENSE.txt next to the csproj -->
 		<None Include="LICENSE.txt" Pack="true" PackagePath="" />
+		<None Include="..\README.md" Pack="true" PackagePath="\"/>
 	</ItemGroup>
 </Project>
