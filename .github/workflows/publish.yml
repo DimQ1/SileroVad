@@ -25,6 +25,9 @@ defaults:
 jobs:
   create_nuget:
     runs-on: ubuntu-latest
+    strategy:
+     matrix:
+        dotnet: [ '6.0.x', '7.0.x']
     steps:
     - uses: actions/checkout@v3
       with:
@@ -34,7 +37,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 7.0.x
+        dotnet-version: ${{ matrix.dotnet }}
 
     # Create the NuGet package in the folder from the environment variable NuGetDirectory
     - run: dotnet pack --configuration Release --output ${{ env.NuGetDirectory }}
