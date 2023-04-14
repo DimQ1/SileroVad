@@ -10,7 +10,6 @@
 		<AssemblyVersion>1.1.0.1</AssemblyVersion>
 		<FileVersion>1.1.0.1</FileVersion>
 		<PackageVersion>1.1.0.1</PackageVersion>
-		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 	</PropertyGroup>
 
