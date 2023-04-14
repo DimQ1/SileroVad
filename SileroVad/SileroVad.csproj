@@ -11,6 +11,8 @@
 		<FileVersion>1.1.0.1</FileVersion>
 		<PackageVersion>1.1.0.1</PackageVersion>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
 
 	<ItemGroup>
