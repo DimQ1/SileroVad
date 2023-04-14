@@ -25,9 +25,7 @@ defaults:
 jobs:
   create_nuget:
     runs-on: ubuntu-latest
-    strategy:
-     matrix:
-        dotnet: [ '6.0.x', '7.0.x']
+
     steps:
     - uses: actions/checkout@v3
       with:
@@ -36,8 +34,6 @@ jobs:
     # Install the .NET SDK indicated in the global.json file
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: ${{ matrix.dotnet }}
 
     # Create the NuGet package in the folder from the environment variable NuGetDirectory
     - run: dotnet pack --configuration Release --output ${{ env.NuGetDirectory }}
@@ -46,8 +42,8 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: nuget
-        if-no-files-found: error
-        retention-days: 7
+        #if-no-files-found: error
+        #retention-days: 1
         path: ${{ env.NuGetDirectory }}/*.nupkg
 
   validate_nuget:
