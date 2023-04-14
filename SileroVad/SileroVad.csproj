@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFrameworks>net6.0;net7.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<AssemblyVersion>1.1.0.1</AssemblyVersion>
 		<FileVersion>1.1.0.1</FileVersion>
-		<PackageVersion>1.1.0.8</PackageVersion>
+		<PackageVersion>1.1.0.1</PackageVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
