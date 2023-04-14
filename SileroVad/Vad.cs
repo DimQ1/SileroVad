@@ -63,7 +63,19 @@ namespace SileroVad
 
             foreach (var chunk in Enumerable.Range(0, audio.Length).Chunk(window_size_samples))
             {
-                (var speech_prob, state) = _model.DetectSpeach(audio.Slice(chunk.First(), chunk.Length), state, sampleRateTensor, batchSize);
+                var chankBytes = audio.Slice(chunk.First(), chunk.Length);
+
+                if(chankBytes.Length < window_size_samples)
+                {
+                    var lastChankBytes =new float[window_size_samples];
+
+                    chankBytes.CopyTo(lastChankBytes);
+
+                    chankBytes = new ReadOnlySpan<float>(lastChankBytes);
+                }
+
+                (var speech_prob, state) = _model.DetectSpeach(chankBytes, state, sampleRateTensor, batchSize);
+
                 speech_probs.Add(speech_prob);
             }
 
