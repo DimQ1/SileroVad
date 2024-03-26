@@ -10,16 +10,17 @@ namespace SileroVad
 
         public SileroVadModel(byte[] model)
         {
-            var opts = new SessionOptions();
-
-            opts.InterOpNumThreads = 1;
-            opts.IntraOpNumThreads = 1;
-            opts.LogSeverityLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_FATAL;
+            var opts = new SessionOptions
+            {
+                InterOpNumThreads = 1,
+                IntraOpNumThreads = 1,
+                LogSeverityLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_FATAL
+            };
 
             this.session = new InferenceSession(model, opts);
         }
 
-        public (Tensor<float> h, Tensor<float> c, Tensor<long> sr) GetInitialStateTensors(int batchSize, long sampleRate)
+        public static (Tensor<float> h, Tensor<float> c, Tensor<long> sr) GetInitialStateTensors(int batchSize, long sampleRate)
         {
             Tensor<float> h = new DenseTensor<float>(new[] { 2, batchSize, 64 });
             Tensor<float> c = new DenseTensor<float>(new[] { 2, batchSize, 64 });
@@ -27,15 +28,15 @@ namespace SileroVad
             return (h, c, sr);
         }
 
-        public (float, (Tensor<float>, Tensor<float>)) DetectSpeach(ReadOnlySpan<float> x, (Tensor<float>, Tensor<float>) state, Tensor<long> srTensor, int batchSize)
+        public (float, (Tensor<float>, Tensor<float>)) DetectSpeech(ReadOnlySpan<float> x, (Tensor<float>, Tensor<float>) state, Tensor<long> srTensor, int batchSize)
         {
             var (h, c) = state;
 
-            var inputTenzor = ConvertToTensor(x, x.Length);
+            var inputTensor = ConvertToTensor(x, x.Length);
 
             List<NamedOnnxValue> ort_inputs = new()
             {
-                NamedOnnxValue.CreateFromTensor("input", inputTenzor),
+                NamedOnnxValue.CreateFromTensor("input", inputTensor),
                 NamedOnnxValue.CreateFromTensor("sr", srTensor),
                 NamedOnnxValue.CreateFromTensor("h", h),
                 NamedOnnxValue.CreateFromTensor("c", c),
