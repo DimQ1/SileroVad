@@ -56,7 +56,7 @@ namespace SileroVad
             var min_silence_samples_at_max_speech = sampling_rate * 98 / 1000;
             var audio_length_samples = audio.Length;
             var speech_probs = new List<float>();
-            var (hTensor, cTensor, sampleRateTensor) = _model.GetInitialStateTensors(batchSize, sampling_rate);
+            var (hTensor, cTensor, sampleRateTensor) = SileroVadModel.GetInitialStateTensors(batchSize, sampling_rate);
             var state = (hTensor, cTensor);
 
             foreach (var chunk in Enumerable.Range(0, audio.Length).Chunk(window_size_samples))
@@ -72,10 +72,9 @@ namespace SileroVad
                     chankBytes = new ReadOnlySpan<float>(lastChankBytes);
                 }
 
-                (var speech_prob, state) = _model.DetectSpeach(chankBytes, state, sampleRateTensor, batchSize);
+                (var speech_prob, state) = _model.DetectSpeech(chankBytes, state, sampleRateTensor, batchSize);
                 speech_probs.Add(speech_prob);
             }
-
 
             var triggered = false;
             var speeches = new List<VadSpeech>();
@@ -171,25 +170,25 @@ namespace SileroVad
             {
                 if (i == 0)
                 {
-                    speech.Start = Convert.ToInt32(Math.Max(0, speech.Start - speech_pad_samples));
+                    speech.Start = Math.Max(0, speech.Start - speech_pad_samples);
                 }
                 if (i != speeches.Count - 1)
                 {
                     var silence_duration = speeches[i + 1].Start - speech.End;
                     if (silence_duration < 2 * speech_pad_samples)
                     {
-                        speech.End += Convert.ToInt32(silence_duration / 2);
-                        speeches[i + 1].Start = Convert.ToInt32(Math.Max(0, speeches[i + 1].Start - silence_duration / 2));
+                        speech.End += silence_duration / 2;
+                        speeches[i + 1].Start = Math.Max(0, speeches[i + 1].Start - silence_duration / 2);
                     }
                     else
                     {
-                        speech.End = Convert.ToInt32(Math.Min(audio_length_samples, speech.End + speech_pad_samples));
-                        speeches[i + 1].Start = Convert.ToInt32(Math.Max(0, speeches[i + 1].Start - speech_pad_samples));
+                        speech.End = Math.Min(audio_length_samples, speech.End + speech_pad_samples);
+                        speeches[i + 1].Start = Math.Max(0, speeches[i + 1].Start - speech_pad_samples);
                     }
                 }
                 else
                 {
-                    speech.End = Convert.ToInt32(Math.Min(audio_length_samples, speech.End + speech_pad_samples));
+                    speech.End = Math.Min(audio_length_samples, speech.End + speech_pad_samples);
                 }
             }
             return speeches;
