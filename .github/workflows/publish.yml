@@ -119,7 +119,7 @@ jobs:
         with:
           name: nugetPackage
       - name: Prep packages
-        run: dotnet nuget add source --username DimQ1 --password ${{ secrets.NUGET_APIKEY }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DimQ1/index.json"
+        run: dotnet nuget add source --username DimQ1 --password ${{ secrets.NUGET_APIKEY }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/SileroVad/index.json"
       - name: Push package to GitHub packages 
         if: needs.build.outputs.CommitsSinceVersionSource > 0 #Only release if there has been a commit/version change  
         run: dotnet nuget push nugetPackage/*.nupkg --api-key ${{ secrets.NUGET_APIKEY }}  --source "github"
