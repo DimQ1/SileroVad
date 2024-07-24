@@ -106,3 +106,20 @@ jobs:
           foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
               dotnet nuget push $file --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
           }
+
+  gitnub_package:
+      if: github.event_name == 'release'
+      runs-on: ubuntu-latest
+      # needs: [ validate_nuget, run_test ]
+      needs: [ create_nuget ]
+      steps:
+         #Push NuGet package to GitHub packages
+      - name: Download nuget package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nugetPackage
+      - name: Prep packages
+        run: dotnet nuget add source --username DimQ1 --password ${{ secrets.NUGET_APIKEY }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DimQ1/index.json"
+      - name: Push package to GitHub packages 
+        if: needs.build.outputs.CommitsSinceVersionSource > 0 #Only release if there has been a commit/version change  
+        run: dotnet nuget push nugetPackage/*.nupkg --api-key ${{ secrets.NUGET_APIKEY }}  --source "github"
