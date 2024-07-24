@@ -118,6 +118,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nuget
+          path: ${{ env.NuGetDirectory }}
       - name: Prep packages
         run: dotnet nuget add source --username DimQ1 --password ${{ secrets.NUGET_APIKEY }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DimQ1/index.json"
       - name: Push package to GitHub packages 
