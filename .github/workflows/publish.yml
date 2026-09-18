@@ -89,13 +89,20 @@ jobs:
       run: dotnet test --configuration Release
 
   deploy:
-    # Publish only when creating a GitHub Release
+    # Publish when a GitHub release is created, or when the workflow is run manually from the Actions
+    # UI (useful to retry a publish that failed; --skip-duplicate makes that safe).
     # https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository
-    # You can update this logic if you want to manage releases differently
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # needs: [ validate_nuget, run_test ]
     needs: [ create_nuget ]
+
+    # Trusted publishing: GitHub issues a short-lived OIDC token that nuget.org exchanges for a
+    # temporary API key, so no long-lived NUGET_APIKEY secret is needed any more.
+    # https://learn.microsoft.com/nuget/nuget-org/trusted-publishing
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       # Download the NuGet package created in the previous job
       - uses: actions/download-artifact@v4
@@ -106,6 +113,17 @@ jobs:
       # Install the .NET SDK indicated in the global.json file
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Exchange the GitHub OIDC token for a short-lived nuget.org API key. 'user' is the nuget.org
+      # profile name and has to match a trusted publishing policy on nuget.org
+      # (repository owner DimQ1, repository SileroVad, workflow file publish.yml).
+      - name: NuGet login (OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: DimQ1
 
       # Publish all NuGet packages to NuGet.org
       # Use --skip-duplicate to prevent errors if a package with the same version already exists.
@@ -113,15 +131,20 @@ jobs:
       - name: Publish NuGet package
         run: |
           foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
-              dotnet nuget push $file --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+              dotnet nuget push $file --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
           }
 
   gitnub_package:
       # Publish only when creating a GitHub Release, like the nuget.org job above
-      if: github.event_name == 'release'
+      if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
       runs-on: ubuntu-latest
-      # needs: [ validate_nuget, run_test ]
       needs: [ create_nuget ]
+
+      # GITHUB_TOKEN can push to GitHub Packages, so no personal access token is needed
+      permissions:
+        packages: write
+        contents: read
+
       steps:
          #Push NuGet package to GitHub packages
       - name: Download nuget package artifact
@@ -130,10 +153,10 @@ jobs:
           name: nuget
           path: ${{ env.NuGetDirectory }}
       - name: Prep packages
-        run: dotnet nuget add source --username DimQ1 --password ${{ secrets.NUGET_APIKEY_GIT }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DimQ1/index.json"
+        run: dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DimQ1/index.json"
       - name: Push package to GitHub packages 
         #if: needs.build.outputs.CommitsSinceVersionSource > 0 #Only release if there has been a commit/version change  
         run: |
           foreach($file in (Get-ChildItem "${{ env.NuGetDirectory }}" -Recurse -Include *.nupkg)) {
-              dotnet nuget push $file --api-key ${{ secrets.NUGET_APIKEY_GIT }}  --source "github" --skip-duplicate
+              dotnet nuget push $file --api-key ${{ secrets.GITHUB_TOKEN }}  --source "github" --skip-duplicate
           }
