@@ -39,16 +39,40 @@ namespace SileroVad
         /// <summary>Creates a model from ONNX model bytes.</summary>
         /// <param name="model">Raw contents of a Silero VAD <c>.onnx</c> file.</param>
         public VadModel(byte[] model)
-            : this(new InferenceSession(model ?? throw new ArgumentNullException(nameof(model)), CreateSessionOptions()))
+            : this(model, null)
+        {
+        }
+
+        /// <summary>Creates a model from ONNX model bytes and configures the inference session.</summary>
+        /// <param name="model">Raw contents of a Silero VAD <c>.onnx</c> file.</param>
+        /// <param name="configureSession">
+        /// Called with the <see cref="SessionOptions"/> right before the session is created. Use it to append an
+        /// execution provider (see <see cref="VadExecutionProviders"/>) or to tune threads, graph optimisation
+        /// level and other ONNX Runtime settings.
+        /// </param>
+        public VadModel(byte[] model, Action<SessionOptions>? configureSession)
+            : this(CreateSession(model ?? throw new ArgumentNullException(nameof(model)), configureSession))
         {
         }
 
         /// <summary>Creates a model from an ONNX file on disk.</summary>
         /// <param name="modelPath">Path to a Silero VAD <c>.onnx</c> file.</param>
         public VadModel(string modelPath)
-            : this(new InferenceSession(
+            : this(modelPath, null)
+        {
+        }
+
+        /// <summary>Creates a model from an ONNX file on disk and configures the inference session.</summary>
+        /// <param name="modelPath">Path to a Silero VAD <c>.onnx</c> file.</param>
+        /// <param name="configureSession">
+        /// Called with the <see cref="SessionOptions"/> right before the session is created. Use it to append an
+        /// execution provider (see <see cref="VadExecutionProviders"/>) or to tune threads, graph optimisation
+        /// level and other ONNX Runtime settings.
+        /// </param>
+        public VadModel(string modelPath, Action<SessionOptions>? configureSession)
+            : this(CreateSession(
                 string.IsNullOrWhiteSpace(modelPath) ? throw new ArgumentException("Model path is required.", nameof(modelPath)) : modelPath,
-                CreateSessionOptions()))
+                configureSession))
         {
         }
 
@@ -314,6 +338,26 @@ namespace SileroVad
             IntraOpNumThreads = 1,
             LogSeverityLevel = OrtLoggingLevel.ORT_LOGGING_LEVEL_FATAL,
         };
+
+        /// <summary>
+        /// Creates the session after making sure a native runtime is available and letting the caller adjust the
+        /// session options.
+        /// </summary>
+        private static InferenceSession CreateSession(byte[] model, Action<SessionOptions>? configureSession)
+        {
+            VadRuntime.EnsureNativeRuntimeAvailable();
+            using var options = CreateSessionOptions();
+            configureSession?.Invoke(options);
+            return new InferenceSession(model, options);
+        }
+
+        private static InferenceSession CreateSession(string modelPath, Action<SessionOptions>? configureSession)
+        {
+            VadRuntime.EnsureNativeRuntimeAvailable();
+            using var options = CreateSessionOptions();
+            configureSession?.Invoke(options);
+            return new InferenceSession(modelPath, options);
+        }
 
         private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 

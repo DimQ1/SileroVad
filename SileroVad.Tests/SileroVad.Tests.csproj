@@ -14,6 +14,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!--
+			The application chooses the native runtime: exactly one runtime package, here the CPU build.
+			Swap it for Microsoft.ML.OnnxRuntime.Gpu (or .DirectML, .OpenVino, .QNN, ...) of the same version
+			to run on another execution provider; SileroVad itself only depends on the managed package.
+		-->
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\SileroVad\SileroVad.csproj" />
 	</ItemGroup>
 

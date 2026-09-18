@@ -1,3 +1,4 @@
+using Microsoft.ML.OnnxRuntime;
 using SileroVad.Properties;
 
 namespace SileroVad
@@ -33,7 +34,18 @@ namespace SileroVad
 
         /// <summary>Creates a detector using one of the bundled models.</summary>
         /// <param name="kind">Bundled model revision: <see cref="VadModelKind.V5"/> (default) or <see cref="VadModelKind.V4"/>.</param>
-        public Vad(VadModelKind kind)
+        public Vad(VadModelKind kind) : this(kind, null)
+        {
+        }
+
+        /// <summary>Creates a detector using one of the bundled models and configures the inference session.</summary>
+        /// <param name="kind">Bundled model revision: <see cref="VadModelKind.V5"/> (default) or <see cref="VadModelKind.V4"/>.</param>
+        /// <param name="configureSession">
+        /// Called with the <see cref="Microsoft.ML.OnnxRuntime.SessionOptions"/> before the session is created;
+        /// use it to append an execution provider (see <see cref="VadExecutionProviders"/>) or to tune ONNX
+        /// Runtime settings.
+        /// </param>
+        public Vad(VadModelKind kind, Action<SessionOptions>? configureSession)
         {
             var model = kind switch
             {
@@ -42,23 +54,41 @@ namespace SileroVad
                 _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported model revision."),
             };
 
-            this._model = new VadModel(model);
+            this._model = new VadModel(model, configureSession);
             this._ownsModel = true;
         }
 
         /// <summary>Creates a detector using ONNX model bytes.</summary>
         /// <param name="model">Raw contents of a Silero VAD <c>.onnx</c> file (v4 or v5).</param>
-        public Vad(byte[] model)
+        public Vad(byte[] model) : this(model, null)
         {
-            this._model = new VadModel(model);
+        }
+
+        /// <summary>Creates a detector using ONNX model bytes and configures the inference session.</summary>
+        /// <param name="model">Raw contents of a Silero VAD <c>.onnx</c> file (v4 or v5).</param>
+        /// <param name="configureSession">
+        /// Called with the <see cref="Microsoft.ML.OnnxRuntime.SessionOptions"/> before the session is created.
+        /// </param>
+        public Vad(byte[] model, Action<SessionOptions>? configureSession)
+        {
+            this._model = new VadModel(model, configureSession);
             this._ownsModel = true;
         }
 
         /// <summary>Creates a detector using an ONNX model file.</summary>
         /// <param name="modelPath">Path to a Silero VAD <c>.onnx</c> file (v4 or v5).</param>
-        public Vad(string modelPath)
+        public Vad(string modelPath) : this(modelPath, null)
         {
-            this._model = new VadModel(modelPath);
+        }
+
+        /// <summary>Creates a detector using an ONNX model file and configures the inference session.</summary>
+        /// <param name="modelPath">Path to a Silero VAD <c>.onnx</c> file (v4 or v5).</param>
+        /// <param name="configureSession">
+        /// Called with the <see cref="Microsoft.ML.OnnxRuntime.SessionOptions"/> before the session is created.
+        /// </param>
+        public Vad(string modelPath, Action<SessionOptions>? configureSession)
+        {
+            this._model = new VadModel(modelPath, configureSession);
             this._ownsModel = true;
         }
 

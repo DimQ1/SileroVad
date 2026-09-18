@@ -18,16 +18,19 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>vad, library, onnx, silero</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Description>Voice activity detection for .NET using the Silero VAD ONNX models (v5 and v4). Add one ONNX Runtime package with the same version as Microsoft.ML.OnnxRuntime.Managed (Microsoft.ML.OnnxRuntime for CPU, .Gpu for CUDA, .DirectML, .QNN, ...) and choose the execution provider through the VadExecutionProviders helpers.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<!--
-			CPU only, so the package stays usable everywhere (no CUDA dependency).
-			To run the model on a CUDA capable GPU, replace this reference with
-			Microsoft.ML.OnnxRuntime.Gpu of the same version in the consuming application;
-			both packages ship the same managed API.
+			Managed only on purpose: the consuming application picks exactly one native runtime
+			(Microsoft.ML.OnnxRuntime for CPU, .Gpu for CUDA/TensorRT, .DirectML, .OpenVino, .QNN, ...)
+			so that two packages never fight over the same native 'onnxruntime' binary, and so that the
+			execution provider can be chosen freely (see VadExecutionProviders).
+			VadRuntime.EnsureNativeRuntimeAvailable() reports a missing or mismatched runtime with a
+			clear message instead of letting ONNX Runtime crash the process.
 		-->
-		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.30.0" />
 	</ItemGroup>
 
 	<ItemGroup>

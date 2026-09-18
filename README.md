@@ -19,6 +19,9 @@ using var legacy = new Vad(VadModelKind.V4);               // bundled v4 model
 using var custom = new Vad("path/to/silero_vad.onnx");     // your own model
 ```
 
+> **Before you run:** your application has to reference **one** ONNX Runtime package — see
+> [Runtime package](#runtime-package-required). The library itself only depends on the managed runtime.
+
 ### Quick Start
 
 ```html
@@ -123,12 +126,105 @@ using SileroVad;
 `MaxSpeechDurationSeconds`, `SpeechPadMs`, `WindowSizeSamples`, ...). Its defaults match the historical
 `GetSpeechTimestamps` overload, so switching between the two does not change results.
 
-## ONNX Runtime
+## Runtime package (required)
 
-The library references `Microsoft.ML.OnnxRuntime` (CPU), so it has no CUDA dependency and runs anywhere.
-To run inference on a CUDA capable GPU, replace that package reference in your application with
-`Microsoft.ML.OnnxRuntime.Gpu` of the same version — both ship the same managed API and the library needs no
-change. (Verified: the CPU and GPU providers return identical probabilities for these models.)
+`SileroVad` references **only** `Microsoft.ML.OnnxRuntime.Managed`. That is deliberate: the application then
+picks **exactly one** native ONNX Runtime, so two packages never fight over the same `onnxruntime` binary, and
+the execution provider (CPU, CUDA, DirectML, QNN, a plugin, ...) stays a deployment decision instead of a
+library constraint.
+
+Add one runtime package to the application, with the **same version as the managed package** (1.30.0):
+
+| Provider | Package |
+| --- | --- |
+| CPU – works everywhere | `Microsoft.ML.OnnxRuntime` |
+| CUDA and TensorRT (Windows/Linux) | `Microsoft.ML.OnnxRuntime.Gpu` (or `.Gpu.Windows` / `.Gpu.Linux`) |
+| DirectML (Windows) | `Microsoft.ML.OnnxRuntime.DirectML` |
+| Qualcomm NPU | `Microsoft.ML.OnnxRuntime.QNN` |
+| WebGPU and Windows ML / Foundry | `Microsoft.ML.OnnxRuntime.EP.WebGpu`, `Microsoft.ML.OnnxRuntime.Foundry` (plugins) |
+
+```xml
+<ItemGroup>
+  <!-- one, and only one, runtime package -->
+  <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.30.0" />
+</ItemGroup>
+```
+
+## Choosing the execution provider
+
+Providers are requested through the constructor overloads that take an `Action<SessionOptions>`. A request for
+a provider that the loaded runtime does not offer is **ignored by default**, so the same configuration runs on
+a GPU machine and on a laptop. Short names (`cuda`, `dml`, `qnn`, ...) are accepted as well, and the helper
+picks the right ONNX Runtime call for each provider — CUDA, TensorRT, ROCm, MIGraphX and DirectML must not go
+through the generic name based API, which rejects them:
+
+```csharp
+using SileroVad;
+
+// CUDA when present, otherwise the next provider (CPU last)
+using var vad = new Vad(VadModelKind.V5, VadExecutionProviders.Use(
+    VadExecutionProviders.Cuda,
+    new Dictionary<string, string> { ["device_id"] = "0" }));
+
+// DirectML on Windows
+using var dml = new Vad(VadModelKind.V5, VadExecutionProviders.Use(VadExecutionProviders.DirectMl));
+
+// Everything SessionOptions offers, including plugin providers (WebGPU, Windows ML, ...)
+using var tuned = new Vad(VadModelKind.V5, options =>
+{
+    OrtEnv.Instance().RegisterExecutionProviderLibrary("webgpu", "path/to/webgpu_provider.dll");
+    options.AppendExecutionProvider(VadExecutionProviders.WebGpu, new Dictionary<string, string>());
+    options.IntraOpNumThreads = 2;
+    options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
+});
+
+// Fail fast instead of silently running on CPU
+using var strict = new Vad(
+    VadModelKind.V5,
+    VadExecutionProviders.Use(VadExecutionProviders.Cuda, throwIfUnavailable: true));
+```
+
+### Diagnostics
+
+```csharp
+VadRuntime.EnsureNativeRuntimeAvailable();          // throws with instructions instead of crashing
+VadRuntime.ResolveNativeLibraryPath();              // which native library the application carries
+VadRuntime.GetAvailableExecutionProviders();        // e.g. CPUExecutionProvider, CUDAExecutionProvider
+VadExecutionProviders.IsAvailable(VadExecutionProviders.Cuda);
+```
+
+`VadModel` and `Vad` call `EnsureNativeRuntimeAvailable()` themselves, so a missing or mismatched runtime is
+reported before ONNX Runtime is touched.
+
+### Why conflicts happen, and what to do
+
+1. **Two runtime packages in one application.** `Microsoft.ML.OnnxRuntime` and `Microsoft.ML.OnnxRuntime.Gpu`
+   both ship `onnxruntime` and overwrite each other; which copy wins depends on resolution order. Reference
+   one of them.
+2. **The operating system supplies its own copy.** Windows ships `C:\Windows\System32\onnxruntime.dll`
+   (1.17, from Windows ML). If the application does not carry a native runtime, that copy is loaded, its
+   exports do not match the managed 1.30 API and the process dies with `0xC0000005` — **no catchable
+   exception**. The application directory is searched before the system directories, so a proper runtime
+   package wins; `VadRuntime.EnsureNativeRuntimeAvailable()` catches the broken case up front.
+3. **Managed and native versions must match.** NuGet resolves `Microsoft.ML.OnnxRuntime.Managed` upward, so a
+   provider package that lags behind (`.DirectML` and `.QNN` are still at 1.24.4) needs the managed package
+   pinned down explicitly:
+
+   ```xml
+   <PackageReference Include="SileroVad" Version="1.3.0" />
+   <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
+   <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.24.4" />
+   ```
+
+4. **Other components in the same process.** ML.NET (`Microsoft.ML.OnnxTransformer`), Whisper.net, Windows ML
+   and friends also load ONNX Runtime. A process can only have one native `onnxruntime` loaded, so align the
+   versions of all of them on the highest one in use.
+5. **Provider binaries must come from the same package.** `onnxruntime_providers_cuda.dll`,
+   `onnxruntime_providers_tensorrt.dll`, OpenVINO and plugin libraries are version-locked to the core
+   library; do not mix a 1.24 provider with a 1.30 core.
+6. **Single-file or trimmed publish.** Add `PublishSingleFile` with
+   `<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>`, otherwise the native
+   runtime and the provider libraries are not extracted next to the application.
 
 ## Backward compatibility
 
