@@ -96,6 +96,23 @@ Add one runtime package to the application, with the **same version as the manag
 </ItemGroup>
 ```
 
+### Platform support
+
+The library is pure managed code and ships plain `net8.0` / `net9.0` / `net10.0` assets, which are exactly what
+`net8.0-android`, `net9.0-ios`, `net10.0-windows` and the other platform specific target frameworks consume
+(NuGet picks the best asset of every package separately), so no platform specific target is published.
+
+The native ONNX Runtime, however, has to exist for the platform you deploy to:
+
+| Platform | Native runtime |
+| --- | --- |
+| Windows, Linux, macOS | one of the packages above |
+| Android | no official .NET package: bring `libonnxruntime.so` yourself (a third party runtime package such as `NtvLibs.OnnxRuntime.CPU.runtime.android`, or your own build of the ONNX Runtime Android binaries) |
+| iOS, MacCatalyst | no official .NET package: link/build ONNX Runtime yourself |
+
+ONNX Runtime's managed package only contains the interop for the mobile target frameworks, not the native
+libraries, so a platform specific target framework on this library would not make anything runnable by itself.
+
 ## Choosing the execution provider
 
 Providers are requested through the constructor overloads that take an `Action<SessionOptions>`. A request for
