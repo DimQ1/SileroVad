@@ -1,6 +1,13 @@
 # Voice Activity Detection for .Net
 
-Targets **.NET 10** (`net10.0`).
+[![NuGet](https://img.shields.io/nuget/v/SileroVad?label=NuGet&color=004880)](https://www.nuget.org/packages/SileroVad)
+[![Downloads](https://img.shields.io/nuget/dt/SileroVad?label=downloads&color=orange)](https://www.nuget.org/packages/SileroVad)
+[![Tests](https://github.com/DimQ1/SileroVad/actions/workflows/publish.yml/badge.svg?branch=master)](https://github.com/DimQ1/SileroVad/actions/workflows/publish.yml)
+[![Release](https://img.shields.io/github/v/release/DimQ1/SileroVad?label=release&color=blueviolet)](https://github.com/DimQ1/SileroVad/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/DimQ1/SileroVad/blob/master/SileroVad/LICENSE.txt)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-512BD4)](https://dotnet.microsoft.com/download/dotnet/10.0)
+
+Targets **.NET 8, 9 and 10** (`net8.0`, `net9.0`, `net10.0`); the lowest supported framework is `net8.0`.
 
 Wrapper around the official [Silero VAD](https://github.com/snakers4/silero-vad) ONNX models.
 
@@ -24,7 +31,7 @@ using var custom = new Vad("path/to/silero_vad.onnx");     // your own model
 
 ## Example
 
-A complete, runnable example lives in [**SileroVad.Samples**](SileroVad.Samples): it reads an audio file with
+A complete, runnable example lives in [**SileroVad.Samples**](https://github.com/DimQ1/SileroVad/tree/master/SileroVad.Samples): it reads an audio file with
 [NAudio](https://github.com/naudio/NAudio), resamples it when the sample rate is not supported, detects the
 speech and writes it to `<input>.speech.wav`.
 
@@ -33,8 +40,8 @@ dotnet run --project SileroVad.Samples
 dotnet run --project SileroVad.Samples -- "C:\path\to\audio.wav"
 ```
 
-See [`SileroVad.Samples/SpeechExtractor.cs`](SileroVad.Samples/SpeechExtractor.cs) for the code and
-[`SileroVad.Samples/README.md`](SileroVad.Samples/README.md) for the details, including the NAudio 3.x
+See [`SileroVad.Samples/SpeechExtractor.cs`](https://github.com/DimQ1/SileroVad/blob/master/SileroVad.Samples/SpeechExtractor.cs) for the code and
+[`SileroVad.Samples/README.md`](https://github.com/DimQ1/SileroVad/blob/master/SileroVad.Samples/README.md) for the details, including the NAudio 3.x
 specifics. The historical overload still works as before:
 `Vad.GetSpeechTimestamps(audio, min_silence_duration_ms: 500, threshold: 0.5f)`.
 
@@ -189,8 +196,9 @@ dotnet build --configuration Release
 dotnet test  --configuration Release
 ```
 
-The test suite (`SileroVad.Tests`) checks both model revisions against real speech audio: detection quality,
-silence handling, sample rates, streaming/batch parity and the legacy API surface.
+The test suite (`SileroVad.Tests`) runs on `net8.0`, `net9.0` and `net10.0` and checks both model revisions
+against real speech audio: detection quality, silence handling, sample rates, streaming/batch parity and the
+legacy API surface.
 
 ## References
 
