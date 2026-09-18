@@ -21,7 +21,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.30.0" />
+		<!--
+			CPU only, so the package stays usable everywhere (no CUDA dependency).
+			To run the model on a CUDA capable GPU, replace this reference with
+			Microsoft.ML.OnnxRuntime.Gpu of the same version in the consuming application;
+			both packages ship the same managed API.
+		-->
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
 	</ItemGroup>
 
 	<ItemGroup>

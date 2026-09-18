@@ -123,6 +123,13 @@ using SileroVad;
 `MaxSpeechDurationSeconds`, `SpeechPadMs`, `WindowSizeSamples`, ...). Its defaults match the historical
 `GetSpeechTimestamps` overload, so switching between the two does not change results.
 
+## ONNX Runtime
+
+The library references `Microsoft.ML.OnnxRuntime` (CPU), so it has no CUDA dependency and runs anywhere.
+To run inference on a CUDA capable GPU, replace that package reference in your application with
+`Microsoft.ML.OnnxRuntime.Gpu` of the same version — both ship the same managed API and the library needs no
+change. (Verified: the CPU and GPU providers return identical probabilities for these models.)
+
 ## Backward compatibility
 
 The historical API is unchanged and keeps working:
