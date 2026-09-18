@@ -3,5 +3,6 @@
     <File Path=".github/workflows/publish.yml" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="SileroVad.Tests/SileroVad.Tests.csproj" />
   <Project Path="SileroVad/SileroVad.csproj" />
 </Solution>

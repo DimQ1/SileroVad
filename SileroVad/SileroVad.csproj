@@ -43,6 +43,9 @@
 		<None Update="silero_vad.onnx">
 			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
 		</None>
+		<None Update="silero_vad_v4.onnx">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 	<ItemGroup>

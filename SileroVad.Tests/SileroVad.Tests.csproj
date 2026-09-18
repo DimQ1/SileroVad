@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<EnablePackageValidation>false</EnablePackageValidation>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+		<PackageReference Include="xunit" Version="2.9.3" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\SileroVad\SileroVad.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Speech excerpt used by the detection tests (16 kHz, mono, 16 bit PCM, 4 seconds). -->
+		<None Update="assets\speech-16k.wav">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<!-- The bundled models, so that the path based constructors can be exercised. -->
+		<None Include="..\SileroVad\silero_vad.onnx" Link="models\silero_vad.onnx">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="..\SileroVad\silero_vad_v4.onnx" Link="models\silero_vad_v4.onnx">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+</Project>

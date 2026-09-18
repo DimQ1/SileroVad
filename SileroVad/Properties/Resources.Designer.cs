@@ -69,5 +69,15 @@ namespace SileroVad.Properties {
                 return ((byte[])(obj));
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] silero_vad_v4 {
+            get {
+                object obj = ResourceManager.GetObject("silero_vad_v4", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
     }
 }
