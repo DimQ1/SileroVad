@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - 'main'       # Run the workflow when pushing to the main branch
+      - 'master'     # ... and to master, which is the default branch of this repository
   pull_request:
     branches:
       - '*'          # Run the workflow for all pull requests
@@ -116,7 +117,8 @@ jobs:
           }
 
   gitnub_package:
-      #if: github.event_name == 'release'
+      # Publish only when creating a GitHub Release, like the nuget.org job above
+      if: github.event_name == 'release'
       runs-on: ubuntu-latest
       # needs: [ validate_nuget, run_test ]
       needs: [ create_nuget ]
