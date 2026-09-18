@@ -83,7 +83,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '10.0.x'
+        # the tests run on every target framework of the library, so all of their runtimes are needed
+        dotnet-version: |
+          8.0.x
+          9.0.x
+          10.0.x
 
     - name: Run tests
       run: dotnet test --configuration Release

@@ -6,13 +6,17 @@
 		<RepositoryUrl>https://github.com/DimQ1/SileroVad.git</RepositoryUrl>
 		<RepositoryBranch>master</RepositoryBranch>
 		<EnablePackageValidation>true</EnablePackageValidation>
-		<TargetFramework>net10.0</TargetFramework>
+		<!--
+			net8.0 is the lowest target the managed ONNX Runtime package ships (it also ships netstandard2.0 and
+			mobile assets); net8/9 consumers get their own asset, net10 consumers use the net10.0 one.
+		-->
+		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<AssemblyVersion>2.0.0.0</AssemblyVersion>
-		<FileVersion>2.0.0.0</FileVersion>
-		<PackageVersion>2.0.0</PackageVersion>
+		<AssemblyVersion>2.1.0.0</AssemblyVersion>
+		<FileVersion>2.1.0.0</FileVersion>
+		<PackageVersion>2.1.0</PackageVersion>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
