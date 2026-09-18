@@ -22,82 +22,21 @@ using var custom = new Vad("path/to/silero_vad.onnx");     // your own model
 > **Before you run:** your application has to reference **one** ONNX Runtime package — see
 > [Runtime package](#runtime-package-required). The library itself only depends on the managed runtime.
 
-### Quick Start
+## Example
 
-```html
-using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
-using SileroVad;
+A complete, runnable example lives in [**SileroVad.Samples**](SileroVad.Samples): it reads an audio file with
+[NAudio](https://github.com/naudio/NAudio), resamples it when the sample rate is not supported, detects the
+speech and writes it to `<input>.speech.wav`.
 
- public static class FileReader
-    {
-        private static int SAMPLE_RATE = 16000;
-        private static Vad vad = new Vad();
-
-        public static void VadFile(string filePath)
-        {
-            var ext = Path.GetExtension(filePath).ToLower();
-            WaveStream waveFileReader;
-
-            switch (ext)
-            {
-                case ".wav":
-                    waveFileReader = new WaveFileReader(filePath);
-                    break;
-                case ".mp3":
-                    waveFileReader = new Mp3FileReader(filePath);
-                    break;
-                default:
-                    throw new NotSupportedException($"not supported {ext}");
-            }
-
-            var TotalTime = waveFileReader.TotalTime;
-
-            ISampleProvider sampleProvider;
-
-            if (waveFileReader.WaveFormat.SampleRate != SAMPLE_RATE)
-            {
-                sampleProvider = new WdlResamplingSampleProvider(waveFileReader.ToSampleProvider(), SAMPLE_RATE).ToMono();
-            }
-            else
-            {
-                sampleProvider = waveFileReader.ToSampleProvider();
-            }
-
-            var array = new float[CountSamples(TotalTime)];
-
-            sampleProvider.Read(array, 0, array.Length);
-
-            List<VadSpeech> resul = vad.GetSpeechTimestamps(array, min_silence_duration_ms: 500, threshold: 0.5f);
-
-            var audioSpeech = VadHelper.GetSpeechSamples(array, resul);
-
-            var fileTrim = Path.ChangeExtension(filePath, "speech") + ".wav";
-
-            using var fileWriter = new WaveFileWriter(fileTrim, new WaveFormat(16000, 1));
-            foreach (var sample in audioSpeech)
-            {
-                fileWriter.WriteSample(sample);
-            }
-            fileWriter.Flush();
-            waveFileReader.Dispose();
-
-        }
-
-        private static int CountSamples(TimeSpan time)
-        {
-            WaveFormat waveFormat = new WaveFormat(16000, 1);
-
-            return TimeSpanToSamples(time, waveFormat);
-        }
-
-        private static int TimeSpanToSamples(TimeSpan time, WaveFormat waveFormat)
-        {
-            return (int)(time.TotalSeconds * (double)waveFormat.SampleRate) * waveFormat.Channels;
-        }
-    }
+```bash
+dotnet run --project SileroVad.Samples
+dotnet run --project SileroVad.Samples -- "C:\path\to\audio.wav"
 ```
 
+See [`SileroVad.Samples/SpeechExtractor.cs`](SileroVad.Samples/SpeechExtractor.cs) for the code and
+[`SileroVad.Samples/README.md`](SileroVad.Samples/README.md) for the details, including the NAudio 3.x
+specifics. The historical overload still works as before:
+`Vad.GetSpeechTimestamps(audio, min_silence_duration_ms: 500, threshold: 0.5f)`.
 
 ## Features
 
