@@ -1,5 +1,8 @@
 # Voice Activity Detection for .Net
  will uppdated soon
+
+Targets **.NET 10** (`net10.0`).
+
 ### Quick Start
 
 ```html
