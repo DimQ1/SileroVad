@@ -16,7 +16,8 @@ namespace SileroVad
         V4 = 4,
 
         /// <summary>
-        /// Current v5 models: <c>input</c>/<c>state</c>/<c>sr</c> inputs and <c>output</c>/<c>stateN</c> outputs.
+        /// Current models, introduced by silero-vad v5 and kept by v6.x (the bundled model is v6.3):
+        /// <c>input</c>/<c>state</c>/<c>sr</c> inputs and <c>output</c>/<c>stateN</c> outputs.
         /// The caller prepends the previous 64 samples (32 at 8 kHz) of context to every window and carries
         /// a single 128-wide state tensor.
         /// </summary>

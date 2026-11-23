@@ -5,15 +5,15 @@
 		<IsPackable>true</IsPackable>
 		<EnablePackageValidation>true</EnablePackageValidation>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<AssemblyVersion>2.1.0.0</AssemblyVersion>
-		<FileVersion>2.1.0.0</FileVersion>
-		<PackageVersion>2.1.0</PackageVersion>
+		<AssemblyVersion>2.2.0.0</AssemblyVersion>
+		<FileVersion>2.2.0.0</FileVersion>
+		<PackageVersion>2.2.0</PackageVersion>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>vad, library, onnx, silero</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<Description>Voice activity detection for .NET using the Silero VAD ONNX models (v5 and v4). Add one ONNX Runtime package with the same version as Microsoft.ML.OnnxRuntime.Managed (Microsoft.ML.OnnxRuntime for CPU, .Gpu for CUDA, .DirectML, .QNN, ...) and choose the execution provider through the VadExecutionProviders helpers.</Description>
+		<Description>Voice activity detection for .NET using the Silero VAD ONNX models (v6.3, with the v5 layout, and the legacy v4). Add one ONNX Runtime package with the same version as Microsoft.ML.OnnxRuntime.Managed (Microsoft.ML.OnnxRuntime for CPU, .Gpu for CUDA, .DirectML, .QNN, ...) and choose the execution provider through the VadExecutionProviders helpers.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>

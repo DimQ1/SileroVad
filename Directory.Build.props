@@ -4,9 +4,9 @@
 		<!--
 			Target frameworks of the library. The tests use the same list, so that every shipped asset is exercised.
 			net8.0 is the lowest target the managed ONNX Runtime package ships (it also ships netstandard2.0 and
-			mobile assets); net8/9 consumers get their own asset, net10 consumers use the net10.0 one.
+			mobile assets); every supported .NET version gets its own asset.
 		-->
-		<SileroVadTargetFrameworks>net8.0;net9.0;net10.0</SileroVadTargetFrameworks>
+		<SileroVadTargetFrameworks>net8.0;net9.0;net10.0;net11.0</SileroVadTargetFrameworks>
 
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>

@@ -18,9 +18,16 @@ namespace SileroVad
 
         /// <summary>
         /// Speech threshold: probabilities above this value count as speech. Values between
-        /// <see cref="Threshold"/> <c>- 0.15</c> and <see cref="Threshold"/> keep the current segment open.
+        /// <see cref="NegThreshold"/> and <see cref="Threshold"/> keep the current segment open.
         /// </summary>
         public float Threshold { get; init; } = 0.5f;
+
+        /// <summary>
+        /// Negative (exit) threshold: while in speech, probabilities below this value count as silence.
+        /// <see langword="null"/> selects <c>max(</c><see cref="Threshold"/><c> - 0.15, 0.01)</c>, the default of
+        /// the reference implementation.
+        /// </summary>
+        public float? NegThreshold { get; init; }
 
         /// <summary>Speech chunks shorter than this are discarded.</summary>
         public int MinSpeechDurationMs { get; init; } = 50;
@@ -69,6 +76,11 @@ namespace SileroVad
             if (Threshold is <= 0f or > 1f)
             {
                 throw new ArgumentOutOfRangeException(nameof(Threshold), Threshold, "Threshold must be in the (0, 1] range.");
+            }
+
+            if (NegThreshold is { } negThreshold && (negThreshold is < 0f or > 1f || negThreshold > Threshold))
+            {
+                throw new ArgumentOutOfRangeException(nameof(NegThreshold), NegThreshold, "Negative threshold must be in the [0, Threshold] range.");
             }
 
             if (MinSpeechDurationMs < 0)

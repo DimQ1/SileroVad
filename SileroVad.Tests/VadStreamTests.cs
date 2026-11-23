@@ -113,6 +113,31 @@ namespace SileroVad.Tests
         }
 
         [Fact]
+        public void LargePadding_DoesNotMakeSegmentsOverlap()
+        {
+            // Two speech runs with a pause shorter than twice the padding: the left pad of the second segment must
+            // stop at the end of the first one (silero-vad v6.3, snakers4/silero-vad#818).
+            using var vad = new Vad();
+            var audio = TestAudio.Speech
+                .Concat(new float[TestAudio.SampleRate / 4])
+                .Concat(TestAudio.Speech)
+                .ToArray();
+            var options = new VadOptions { SpeechPadMs = 1000, MinSilenceDurationMs = 100 };
+
+            using var stream = vad.CreateStream(options);
+            var segments = Push(stream, audio, chunkSize: 1600);
+
+            Assert.True(segments.Count > 1);
+
+            for (var i = 1; i < segments.Count; i++)
+            {
+                Assert.True(
+                    segments[i].Start >= segments[i - 1].End,
+                    $"Segment {i} [{segments[i].Start}, {segments[i].End}) overlaps [{segments[i - 1].Start}, {segments[i - 1].End}).");
+            }
+        }
+
+        [Fact]
         public void DisposedStream_Throws()
         {
             using var vad = new Vad();
