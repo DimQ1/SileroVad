@@ -1,26 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<!-- Test every target framework of the library, so each shipped asset is exercised. -->
-		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<IsPackable>false</IsPackable>
-		<EnablePackageValidation>false</EnablePackageValidation>
+		<TargetFrameworks>$(SileroVadTargetFrameworks)</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-		<PackageReference Include="xunit" Version="2.9.3" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit" />
+		<PackageReference Include="xunit.runner.visualstudio" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<!--
 			The application chooses the native runtime: exactly one runtime package, here the CPU build.
-			Swap it for Microsoft.ML.OnnxRuntime.Gpu (or .DirectML, .OpenVino, .QNN, ...) of the same version
+			Swap it for Microsoft.ML.OnnxRuntime.Gpu (or .DirectML, .OpenVino, .QNN, ...) declared in
+			Directory.Packages.props with $(OnnxRuntimeVersion)
 			to run on another execution provider; SileroVad itself only depends on the managed package.
 		-->
-		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" />
 	</ItemGroup>
 
 	<ItemGroup>

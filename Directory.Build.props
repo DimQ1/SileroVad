@@ -1,0 +1,23 @@
+<Project>
+	<!-- Properties shared by every project of the solution. -->
+	<PropertyGroup>
+		<!--
+			Target frameworks of the library. The tests use the same list, so that every shipped asset is exercised.
+			net8.0 is the lowest target the managed ONNX Runtime package ships (it also ships netstandard2.0 and
+			mobile assets); net8/9 consumers get their own asset, net10 consumers use the net10.0 one.
+		-->
+		<SileroVadTargetFrameworks>net8.0;net9.0;net10.0</SileroVadTargetFrameworks>
+
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<!-- Only the library is published; it opts in with IsPackable=true. -->
+		<IsPackable>false</IsPackable>
+
+		<Authors>Dzmitry Shchamialiou</Authors>
+		<PackageProjectUrl>https://github.com/DimQ1/SileroVad</PackageProjectUrl>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/DimQ1/SileroVad.git</RepositoryUrl>
+		<RepositoryBranch>master</RepositoryBranch>
+	</PropertyGroup>
+</Project>
