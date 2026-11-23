@@ -106,6 +106,90 @@ namespace SileroVad.Tests
         }
 
         [Fact]
+        public void Constructors_RejectMissingModel()
+        {
+            Assert.Throws<ArgumentNullException>(() => new VadModel((byte[])null!));
+            Assert.Throws<ArgumentException>(() => new VadModel((string)null!));
+            Assert.Throws<ArgumentException>(() => new VadModel("  "));
+        }
+
+        [Fact]
+        public void DetectSpeech_RejectsStateOfAnotherSampleRate()
+        {
+            using var model = new VadModel(TestAudio.V5ModelPath);
+            var state = model.CreateState(8000);
+
+            var exception = Assert.Throws<ArgumentException>(
+                () => model.DetectSpeech(new float[512], state, TestAudio.SampleRate));
+
+            Assert.Contains("8000", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(VadModelKind.V4)]
+        [InlineData(VadModelKind.V5)]
+        public void DetectSpeech_RejectsEmptyWindow(VadModelKind kind)
+        {
+            using var model = new VadModel(kind == VadModelKind.V5 ? TestAudio.V5ModelPath : TestAudio.V4ModelPath);
+
+            Assert.Throws<ArgumentException>(
+                () => model.DetectSpeech(ReadOnlySpan<float>.Empty, model.CreateState(), TestAudio.SampleRate));
+        }
+
+        [Fact]
+        public void CreateState_DescribesTheState()
+        {
+            using var v5 = new VadModel(TestAudio.V5ModelPath);
+            using var v4 = new VadModel(TestAudio.V4ModelPath);
+
+            var narrowband = v5.CreateState(8000, batchSize: 3);
+            Assert.Equal(VadModelKind.V5, narrowband.Kind);
+            Assert.Equal(8000, narrowband.SampleRate);
+            Assert.Equal(3, narrowband.BatchSize);
+            Assert.Equal(128, narrowband.StateSize);
+            Assert.Equal(32, narrowband.ContextSamples);
+
+            // Rates above 16 kHz are decimated, so the state works at 16 kHz.
+            Assert.Equal(16000, v5.CreateState(48000).SampleRate);
+
+            var legacy = v4.CreateState();
+            Assert.Equal(VadModelKind.V4, legacy.Kind);
+            Assert.Equal(64, legacy.StateSize);
+            Assert.Equal(0, legacy.ContextSamples);
+        }
+
+        [Fact]
+        public void StateReset_ClearsBothV4Tensors()
+        {
+            using var model = new VadModel(TestAudio.V4ModelPath);
+            var window = TestAudio.Speech.AsSpan(0, 1024);
+
+            var state = model.CreateState(TestAudio.SampleRate);
+            var fresh = model.CreateState(TestAudio.SampleRate);
+
+            model.DetectSpeech(window, state, TestAudio.SampleRate);
+            model.DetectSpeech(window, state, TestAudio.SampleRate);
+            state.Reset();
+
+            Assert.Equal(
+                model.DetectSpeech(window, fresh, TestAudio.SampleRate),
+                model.DetectSpeech(window, state, TestAudio.SampleRate));
+        }
+
+        [Fact]
+        public void DisposedModel_Throws()
+        {
+            var model = new VadModel(TestAudio.V5ModelPath);
+            var state = model.CreateState();
+
+            model.Dispose();
+            model.Dispose(); // a second call is harmless
+
+            Assert.Throws<ObjectDisposedException>(() => model.CreateState());
+            Assert.Throws<ObjectDisposedException>(() => model.DetectSpeech(new float[512], state, TestAudio.SampleRate));
+        }
+
+        [Fact]
         public void CreateState_RejectsInvalidBatchSize()
         {
             using var model = new VadModel(TestAudio.V5ModelPath);

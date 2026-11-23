@@ -149,5 +149,44 @@ namespace SileroVad.Tests
             Assert.Equal(TimeSpan.FromSeconds(1), ranges[1].Start);
             Assert.Equal(TimeSpan.FromSeconds(1.5), ranges[1].End);
         }
+
+        [Fact]
+        public void NullArguments_Throw()
+        {
+            var audio = new float[16];
+            var segments = new List<VadSpeech> { new(0, 8) };
+
+            Assert.Throws<ArgumentNullException>(() => VadHelper.GetSpeechSamples((float[])null!, segments));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.GetSpeechSamples(audio, (List<VadSpeech>)null!));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.GetSpeechSamples((IReadOnlyList<float>)null!, segments));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.GetSpeechSamples((IReadOnlyList<float>)audio, (IEnumerable<VadSpeech>)null!));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.GetSilenceSamples(null!, segments));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.GetSilenceSamples(audio, null!));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.GetSpeechDuration(null!, 16000));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.Merge(null!, 0));
+            Assert.Throws<ArgumentNullException>(() => VadHelper.ToTimeRanges(null!, 16000));
+        }
+
+        [Fact]
+        public void InvalidNumbers_Throw()
+        {
+            var segments = new List<VadSpeech> { new(0, 8) };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => VadHelper.GetSpeechDuration(segments, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => VadHelper.Merge(segments, -1));
+
+            // ToTimeRanges is lazy: the sample rate is checked when the result is enumerated.
+            var ranges = VadHelper.ToTimeRanges(segments, 0);
+            Assert.Throws<ArgumentOutOfRangeException>(() => ranges.ToList());
+        }
+
+        [Fact]
+        public void GetSpeechSamples_AcceptsReadOnlyListsAndUnsortedSegments()
+        {
+            IReadOnlyList<float> audio = Enumerable.Range(0, 10).Select(i => (float)i).ToArray();
+            var segments = new[] { new VadSpeech(6, 8), new VadSpeech(1, 3) };
+
+            Assert.Equal(new float[] { 6, 7, 1, 2 }, VadHelper.GetSpeechSamples(audio, segments).ToArray());
+        }
     }
 }

@@ -214,5 +214,75 @@ namespace SileroVad.Tests
 
             Assert.InRange(probability, 0f, 1f);
         }
+
+        [Fact]
+        public void UnknownBundledModel_Throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Vad((VadModelKind)3));
+        }
+
+        [Theory]
+        [MemberData(nameof(AllKinds))]
+        public void BytesConstructor_MatchesBundledModel(VadModelKind kind)
+        {
+            var path = kind == VadModelKind.V5 ? TestAudio.V5ModelPath : TestAudio.V4ModelPath;
+
+            using var fromBytes = new Vad(File.ReadAllBytes(path));
+            using var bundled = new Vad(kind);
+
+            Assert.Equal(kind, fromBytes.ModelKind);
+            Assert.Equal(
+                bundled.GetSpeechTimestamps(TestAudio.Speech, new VadOptions()),
+                fromBytes.GetSpeechTimestamps(TestAudio.Speech, new VadOptions()));
+        }
+
+        [Fact]
+        public void LegacyOverload_AcceptsAnUnusualWindowForV4()
+        {
+            // 768 samples is not one of the trained window sizes: a warning is printed, detection still runs.
+            using var vad = new Vad(VadModelKind.V4);
+
+            Assert.NotEmpty(vad.GetSpeechTimestamps(TestAudio.Speech, window_size_samples: 768));
+        }
+
+        [Theory]
+        [InlineData(nameof(VadOptions.Threshold))]
+        [InlineData(nameof(VadOptions.MinSpeechDurationMs))]
+        [InlineData(nameof(VadOptions.MinSilenceDurationMs))]
+        [InlineData(nameof(VadOptions.MinSilenceAtMaxSpeechMs))]
+        [InlineData(nameof(VadOptions.SpeechPadMs))]
+        [InlineData(nameof(VadOptions.WindowSizeSamples))]
+        [InlineData(nameof(VadOptions.MaxSpeechDurationSeconds))]
+        [InlineData(nameof(VadOptions.NegThreshold))]
+        public void InvalidOption_IsRejectedEverywhere(string option)
+        {
+            var options = option switch
+            {
+                nameof(VadOptions.Threshold) => new VadOptions { Threshold = 1.5f },
+                nameof(VadOptions.MinSpeechDurationMs) => new VadOptions { MinSpeechDurationMs = -1 },
+                nameof(VadOptions.MinSilenceDurationMs) => new VadOptions { MinSilenceDurationMs = -1 },
+                nameof(VadOptions.MinSilenceAtMaxSpeechMs) => new VadOptions { MinSilenceAtMaxSpeechMs = -1 },
+                nameof(VadOptions.SpeechPadMs) => new VadOptions { SpeechPadMs = -1 },
+                nameof(VadOptions.WindowSizeSamples) => new VadOptions { WindowSizeSamples = 0 },
+                nameof(VadOptions.MaxSpeechDurationSeconds) => new VadOptions { MaxSpeechDurationSeconds = 0f },
+                _ => new VadOptions { NegThreshold = -0.1f },
+            };
+
+            using var vad = new Vad();
+
+            Assert.Equal(option, Assert.Throws<ArgumentOutOfRangeException>(() => vad.GetSpeechTimestamps(TestAudio.Silence, options)).ParamName);
+            Assert.Equal(option, Assert.Throws<ArgumentOutOfRangeException>(() => vad.GetSpeechProbabilities(TestAudio.Silence, options)).ParamName);
+            Assert.Equal(option, Assert.Throws<ArgumentOutOfRangeException>(() => vad.GetSpeechTimestampsFromProbabilities(new[] { 1f }, options)).ParamName);
+            Assert.Equal(option, Assert.Throws<ArgumentOutOfRangeException>(() => vad.CreateStream(options)).ParamName);
+        }
+
+        [Fact]
+        public void NullOptions_Throw()
+        {
+            using var vad = new Vad();
+
+            Assert.Throws<ArgumentNullException>(() => vad.GetSpeechTimestamps(TestAudio.Silence, (VadOptions)null!));
+            Assert.Throws<ArgumentNullException>(() => vad.GetSpeechTimestampsFromProbabilities(new[] { 1f }, null!));
+        }
     }
 }

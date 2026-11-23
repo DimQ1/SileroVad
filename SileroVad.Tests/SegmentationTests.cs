@@ -111,6 +111,104 @@ namespace SileroVad.Tests
         }
 
         [Fact]
+        public void MaxSpeech_SplitsAtTheLongestSilence()
+        {
+            // Pauses of 4, 8 and 6 windows inside speech; the 2 s limit is reached at window 62. Each pause is longer
+            // than MinSilenceAtMaxSpeechMs (98 ms) but much shorter than MinSilenceDurationMs, so none closes a chunk.
+            using var vad = new Vad();
+            var options = MaxSpeechOptions with { UseLongestSilenceForMaxSpeech = true };
+
+            var speeches = vad.GetSpeechTimestampsFromProbabilities(PausedSpeech, options);
+
+            Assert.Equal(
+                new[]
+                {
+                    new VadSpeech(0, 24 * Window),           // cut at the start of the longest (8 window) pause
+                    new VadSpeech(32 * Window, 94 * Window), // resumes after it; no pause left at the next limit
+                    new VadSpeech(94 * Window, 100 * Window),
+                },
+                speeches);
+        }
+
+        [Fact]
+        public void MaxSpeech_SplitsAtTheLastSilenceByDefault()
+        {
+            // Same audio as above: the legacy rule cuts at the last pause that lasted longer than 98 ms (the 6 window
+            // one), not at the longest. It measures a pause while it lasts, so the 4 window pause (96 ms from its
+            // first to its last window) does not qualify.
+            using var vad = new Vad();
+
+            var speeches = vad.GetSpeechTimestampsFromProbabilities(PausedSpeech, MaxSpeechOptions);
+
+            Assert.Equal(
+                new[]
+                {
+                    new VadSpeech(0, 42 * Window),
+                    new VadSpeech(48 * Window, 100 * Window),
+                },
+                speeches);
+        }
+
+        [Theory]
+        [InlineData(false, 56)]
+        [InlineData(true, 62)]
+        public void MaxSpeech_ReachedDuringAPause_WaitsForSpeech(bool useLongestSilence, int expectedCutWindow)
+        {
+            // The limit (window 62) falls inside a 15 window pause. The legacy rule cuts where the pause began; the
+            // longest-silence rule has no finished pause to choose and cuts at the limit. Both resume with speech.
+            using var vad = new Vad();
+            var options = MaxSpeechOptions with { UseLongestSilenceForMaxSpeech = useLongestSilence };
+
+            var speeches = vad.GetSpeechTimestampsFromProbabilities(Probabilities((56, 1f), (15, 0f), (29, 1f)), options);
+
+            Assert.Equal(
+                new[]
+                {
+                    new VadSpeech(0, expectedCutWindow * Window),
+                    new VadSpeech(71 * Window, 100 * Window),
+                },
+                speeches);
+        }
+
+        [Theory]
+        [InlineData(new[] { 1, 70 }, new[] { 1f, 0f })]
+        [InlineData(new[] { 70, 1 }, new[] { 0f, 1f })]
+        public void SpeechShorterThanMinimum_IsDropped(int[] counts, float[] values)
+        {
+            // One 32 ms window of speech, followed or preceded by silence, is shorter than MinSpeechDurationMs (50 ms).
+            using var vad = new Vad();
+            var probabilities = Probabilities(counts.Zip(values, (count, value) => (count, value)).ToArray());
+
+            Assert.Empty(vad.GetSpeechTimestampsFromProbabilities(probabilities, new VadOptions { MinSilenceDurationMs = 100 }));
+        }
+
+        [Fact]
+        public void Padding_SharesAShortGapBetweenNeighbours()
+        {
+            // The 10 window gap (5120 samples) is shorter than twice the 200 ms pad, so each side takes half of it.
+            using var vad = new Vad();
+            var options = new VadOptions { MinSilenceDurationMs = 100, SpeechPadMs = 200 };
+
+            var speeches = vad.GetSpeechTimestampsFromProbabilities(Probabilities((10, 1f), (10, 0f), (10, 1f)), options);
+
+            Assert.Equal(new[] { new VadSpeech(0, 15 * Window), new VadSpeech(15 * Window, 30 * Window) }, speeches);
+        }
+
+        [Fact]
+        public void Padding_IsClampedToTheAudio()
+        {
+            // Speech from window 2 to 22 ([1024, 11264)), padded by 200 ms (3200 samples): the start would fall
+            // before the audio and the end after its 13000 samples, so both are clamped.
+            using var vad = new Vad();
+            var options = new VadOptions { MinSilenceDurationMs = 100, SpeechPadMs = 200 };
+            var probabilities = Probabilities((2, 0f), (20, 1f), (10, 0f));
+
+            var speech = Assert.Single(vad.GetSpeechTimestampsFromProbabilities(probabilities, options, audioLengthSamples: 13000));
+
+            Assert.Equal(new VadSpeech(0, 13000), speech);
+        }
+
+        [Fact]
         public void NegThreshold_DefaultsToThresholdMinus015()
         {
             using var vad = new Vad();
@@ -146,6 +244,13 @@ namespace SileroVad.Tests
 
             Assert.Throws<ArgumentOutOfRangeException>(() => vad.GetSpeechTimestamps(TestAudio.Silence, options));
         }
+
+        /// <summary>No padding and a 2 s limit: 32000 - 512 samples, reached at window 62.</summary>
+        private static VadOptions MaxSpeechOptions => new() { SpeechPadMs = 0, MaxSpeechDurationSeconds = 2f };
+
+        /// <summary>100 windows of speech with pauses of 4 (windows 10-13), 8 (24-31) and 6 (42-47) windows.</summary>
+        private static float[] PausedSpeech =>
+            Probabilities((10, 1f), (4, 0f), (10, 1f), (8, 0f), (10, 1f), (6, 0f), (52, 1f));
 
         private static float[] AudioAt(int sampleRate) => sampleRate switch
         {

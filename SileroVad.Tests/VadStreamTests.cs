@@ -79,6 +79,16 @@ namespace SileroVad.Tests
             Assert.Equal(100, stream.SamplesProcessed);
         }
 
+        [Fact]
+        public void EmptyPush_ReturnsNothing()
+        {
+            using var vad = new Vad();
+            using var stream = vad.CreateStream();
+
+            Assert.Empty(stream.Push(ReadOnlySpan<float>.Empty));
+            Assert.Equal(0, stream.SamplesProcessed);
+        }
+
         [Theory]
         [InlineData(16000, 1)]
         [InlineData(8000, 1)]

@@ -176,5 +176,132 @@ namespace SileroVad.Tests
 
             Assert.Equal(expected, VadRuntime.NativeLibraryFileName);
         }
+
+        [Fact]
+        public void MismatchedNativeRuntime_IsReportedWithBothVersions()
+        {
+            // Any versioned binary under the native library name stands in for a runtime of another version:
+            // the xunit assertion library is 2.x, the managed ONNX Runtime 1.x.
+            WithTemporaryDirectory(directory =>
+            {
+                var fake = Path.Combine(directory, VadRuntime.NativeLibraryFileName);
+                File.Copy(typeof(Assert).Assembly.Location, fake);
+
+                Assert.Equal(fake, VadRuntime.ResolveNativeLibraryPath(directory));
+
+                var exception = Assert.Throws<InvalidOperationException>(() => VadRuntime.EnsureNativeRuntimeAvailable(directory));
+
+                Assert.Contains(fake, exception.Message, StringComparison.Ordinal);
+                Assert.Contains(VadRuntime.ManagedVersion.ToString(), exception.Message, StringComparison.Ordinal);
+            });
+        }
+
+        [Fact]
+        public void UnversionedNativeRuntime_IsAccepted()
+        {
+            // A binary without version information cannot be checked; ONNX Runtime decides when it loads it.
+            WithTemporaryDirectory(directory =>
+            {
+                File.WriteAllBytes(Path.Combine(directory, VadRuntime.NativeLibraryFileName), new byte[] { 1, 2, 3, 4 });
+
+                VadRuntime.EnsureNativeRuntimeAvailable(directory);
+            });
+        }
+
+        [Fact]
+        public void NativeRuntime_IsFoundInTheRuntimesFolder()
+        {
+            WithTemporaryDirectory(directory =>
+            {
+                var native = Path.Combine(directory, "runtimes", System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier, "native");
+                Directory.CreateDirectory(native);
+                var library = Path.Combine(native, VadRuntime.NativeLibraryFileName);
+                File.WriteAllBytes(library, new byte[] { 1, 2, 3, 4 });
+
+                Assert.Equal(library, VadRuntime.ResolveNativeLibraryPath(directory));
+            });
+        }
+
+        [Theory]
+        [InlineData(" CPU ", true)]
+        [InlineData(VadExecutionProviders.Cpu, true)]
+        [InlineData("   ", false)]
+        [InlineData(null, false)]
+        public void IsAvailable_TrimsNamesAndRejectsBlankOnes(string? providerName, bool expected)
+        {
+            Assert.Equal(expected, VadExecutionProviders.IsAvailable(providerName!));
+        }
+
+        [Theory]
+        [InlineData("cuda", VadExecutionProviders.Cuda)]
+        [InlineData("tensorrt", VadExecutionProviders.TensorRt)]
+        [InlineData("trt", VadExecutionProviders.TensorRt)]
+        [InlineData("rocm", VadExecutionProviders.Rocm)]
+        [InlineData("dml", VadExecutionProviders.DirectMl)]
+        [InlineData("DirectML", VadExecutionProviders.DirectMl)]
+        [InlineData("migraphx", VadExecutionProviders.MiGraphX)]
+        [InlineData("openvino", VadExecutionProviders.OpenVino)]
+        [InlineData("coreml", VadExecutionProviders.CoreMl)]
+        [InlineData("qnn", VadExecutionProviders.Qnn)]
+        [InlineData("webgpu", VadExecutionProviders.WebGpu)]
+        public void ShortNames_MapToTheCanonicalProvider(string shortName, string canonical)
+        {
+            // Only checkable for providers the test host lacks: the error names the canonical provider.
+            if (VadExecutionProviders.IsAvailable(canonical))
+            {
+                return;
+            }
+
+            using var options = new SessionOptions();
+            var configure = VadExecutionProviders.Use(shortName, throwIfUnavailable: true);
+
+            var exception = Assert.Throws<InvalidOperationException>(() => configure(options));
+
+            Assert.Contains($"'{canonical}'", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("0")]
+        [InlineData("1")]
+        [InlineData("not a number")]
+        public void CpuProvider_ReadsTheArenaOption(string useArena)
+        {
+            var configure = VadExecutionProviders.Use("cpu", new Dictionary<string, string> { ["use_arena"] = useArena });
+
+            using var vad = new Vad(VadModelKind.V5, configure);
+
+            Assert.NotEmpty(vad.GetSpeechTimestamps(TestAudio.Speech, new VadOptions()));
+        }
+
+        [Fact]
+        public void ProviderConfigurations_RejectInvalidArguments()
+        {
+            Assert.Throws<ArgumentException>(() => VadExecutionProviders.Use("  "));
+            Assert.Throws<ArgumentNullException>(() => VadExecutionProviders.Use(VadExecutionProviders.Cpu)(null!));
+            Assert.Throws<ArgumentNullException>(() => VadExecutionProviders.UseCpu()(null!));
+        }
+
+        [Fact]
+        public void CpuProvider_WithoutArena_IsApplied()
+        {
+            using var vad = new Vad(VadModelKind.V5, VadExecutionProviders.UseCpu(useArena: false));
+
+            Assert.NotEmpty(vad.GetSpeechTimestamps(TestAudio.Speech, new VadOptions()));
+        }
+
+        private static void WithTemporaryDirectory(Action<string> test)
+        {
+            var directory = Path.Combine(Path.GetTempPath(), $"silero-runtime-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+
+            try
+            {
+                test(directory);
+            }
+            finally
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
     }
 }
