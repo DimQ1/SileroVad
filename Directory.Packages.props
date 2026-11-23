@@ -1,0 +1,27 @@
+<Project>
+	<!-- Central package management: versions live here, projects reference packages without a version. -->
+	<PropertyGroup>
+		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+		<!--
+			The managed package and the native runtime package must have the same version, so they share one
+			property. Applications that consume SileroVad have to keep the same rule.
+		-->
+		<OnnxRuntimeVersion>1.30.0</OnnxRuntimeVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Library -->
+		<PackageVersion Include="Microsoft.ML.OnnxRuntime.Managed" Version="$(OnnxRuntimeVersion)" />
+
+		<!-- Native runtime used by the tests and the samples (CPU build) -->
+		<PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="$(OnnxRuntimeVersion)" />
+
+		<!-- Tests -->
+		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+		<PackageVersion Include="xunit" Version="2.9.3" />
+		<PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+
+		<!-- Samples -->
+		<PackageVersion Include="NAudio" Version="3.1.0" />
+	</ItemGroup>
+</Project>

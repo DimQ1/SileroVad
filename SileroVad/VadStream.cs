@@ -12,7 +12,9 @@ namespace SileroVad
     /// <para>
     /// Compared to <see cref="Vad.GetSpeechTimestamps(System.ReadOnlySpan{float}, VadOptions)"/> the streaming API
     /// pads every segment on its own instead of sharing the silence between segments that are closer than twice
-    /// <see cref="VadOptions.SpeechPadMs"/>; segments are also clipped to the audio pushed so far. Both differences
+    /// <see cref="VadOptions.SpeechPadMs"/> (the previous segment keeps its full padding and the start of the next
+    /// one is never padded back past it, so segments never overlap); segments are also clipped to the audio pushed
+    /// so far. Both differences
     /// only matter for speech chunks that follow each other within <c>2 * SpeechPadMs</c> or that hit
     /// <see cref="VadOptions.MaxSpeechDurationSeconds"/>.
     /// </para>
@@ -28,6 +30,7 @@ namespace SileroVad
         private readonly List<VadSpeech> closed = new();
 
         private VadSegmenter segmenter;
+        private int lastReportedEnd;
         private int pendingCount;
         private int windowIndex;
         private int modelSamples;
@@ -139,6 +142,7 @@ namespace SileroVad
             windowIndex = 0;
             modelSamples = 0;
             decimationPhase = 0;
+            lastReportedEnd = 0;
             segmenter = new VadSegmenter(windowSize, VadModel.EffectiveSampleRate(options.SampleRate), options);
         }
 
@@ -171,8 +175,12 @@ namespace SileroVad
         private VadSpeech ToReported(VadSpeech speech)
         {
             var pad = segmenter.SpeechPadSamples;
-            var start = Math.Max(0, speech.Start - pad);
+
+            // The left pad never reaches back into the previous segment, so segments do not overlap when the
+            // padding is larger than the silence between them (silero-vad v6.3, snakers4/silero-vad#818).
+            var start = Math.Max(lastReportedEnd, speech.Start - pad);
             var end = Math.Min(modelSamples, speech.End + pad);
+            lastReportedEnd = end;
             return new VadSpeech(start * step, end * step);
         }
 

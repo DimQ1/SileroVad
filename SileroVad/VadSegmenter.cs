@@ -31,7 +31,7 @@ namespace SileroVad
         {
             _windowSizeSamples = windowSizeSamples;
             _threshold = options.Threshold;
-            _negThreshold = Math.Max(options.Threshold - 0.15f, 0.01f);
+            _negThreshold = options.NegThreshold ?? Math.Max(options.Threshold - 0.15f, 0.01f);
             _minSpeechSamples = sampleRate * options.MinSpeechDurationMs / 1000;
             SpeechPadSamples = sampleRate * options.SpeechPadMs / 1000;
             _maxSpeechSamples = sampleRate * options.MaxSpeechDurationSeconds - windowSizeSamples - 2 * SpeechPadSamples;
@@ -127,12 +127,27 @@ namespace SileroVad
                 }
                 else
                 {
+                    // No silence to split at: cut at the current window. Evaluated before the reset below.
+                    var inPause = _tempEnd > 0 || speechProbability < _negThreshold;
+
                     _current.End = position;
                     closedSegments.Add(_current);
                     _current = new VadSpeech();
+
+                    if (inPause)
+                    {
+                        // Cut inside a pause: wait for speech to return.
+                        _triggered = false;
+                        _segmentOpen = false;
+                    }
+                    else
+                    {
+                        // Speech goes on: it continues in the next chunk instead of being dropped
+                        // (silero-vad v6.3, snakers4/silero-vad#813).
+                        _current.Start = position;
+                    }
+
                     _prevEnd = _nextStart = _tempEnd = 0;
-                    _triggered = false;
-                    _segmentOpen = false;
                     _possibleEnds.Clear();
                     return;
                 }

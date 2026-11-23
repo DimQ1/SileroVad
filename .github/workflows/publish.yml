@@ -37,7 +37,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '10.0.x'
+        dotnet-version: '11.0.x'
 
     # Create the NuGet package in the folder from the environment variable NuGetDirectory
     - run: dotnet pack --configuration Release --output ${{ env.NuGetDirectory }}  /p:GeneratePackageOnBuild=false
@@ -88,6 +88,7 @@ jobs:
           8.0.x
           9.0.x
           10.0.x
+          11.0.x
 
     - name: Run tests
       run: dotnet test --configuration Release
@@ -118,7 +119,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
 
       # Exchange the GitHub OIDC token for a short-lived nuget.org API key. 'user' is the nuget.org
       # profile name and has to match a trusted publishing policy on nuget.org

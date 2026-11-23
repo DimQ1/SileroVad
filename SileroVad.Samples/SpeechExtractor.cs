@@ -38,7 +38,7 @@ namespace SileroVad.Samples
                 ".wav" => new WaveFileReader(filePath),
                 // ".mp3" => new Mp3FileReader(filePath),
                 //   NAudio 3.x moved Mp3FileReader into NAudio.WinMM, so that branch needs a Windows target
-                //   framework (net10.0-windows). Decode mp3 with your own decoder or convert it first.
+                //   framework (net11.0-windows). Decode mp3 with your own decoder or convert it first.
                 _ => throw new NotSupportedException($"not supported {extension}"),
             };
 

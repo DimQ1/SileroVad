@@ -5,9 +5,9 @@
 [![Tests](https://github.com/DimQ1/SileroVad/actions/workflows/publish.yml/badge.svg?branch=master)](https://github.com/DimQ1/SileroVad/actions/workflows/publish.yml)
 [![Release](https://img.shields.io/github/v/release/DimQ1/SileroVad?label=release&color=blueviolet)](https://github.com/DimQ1/SileroVad/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/DimQ1/SileroVad/blob/master/SileroVad/LICENSE.txt)
-[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-512BD4)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0%20%7C%2011.0-512BD4)](https://dotnet.microsoft.com/download/dotnet/11.0)
 
-Targets **.NET 8, 9 and 10** (`net8.0`, `net9.0`, `net10.0`); the lowest supported framework is `net8.0`.
+Targets **.NET 8, 9, 10 and 11** (`net8.0`, `net9.0`, `net10.0`, `net11.0`); the lowest supported framework is `net8.0`.
 
 Wrapper around the official [Silero VAD](https://github.com/snakers4/silero-vad) ONNX models.
 
@@ -15,16 +15,28 @@ Wrapper around the official [Silero VAD](https://github.com/snakers4/silero-vad)
 
 | Revision | Bundled file | Recurrent state | Window at 16 kHz | Sample rates |
 | --- | --- | --- | --- | --- |
-| **v5** (default) | `silero_vad.onnx` | `state` [2, N, 128] plus 64 samples of context | 512 | 8 kHz, 16 kHz |
+| **v5** (default) – silero-vad **v6.3** model | `silero_vad.onnx` | `state` [2, N, 128] plus 64 samples of context | 512 | 8 kHz, 16 kHz |
 | **v4** (legacy) | `silero_vad_v4.onnx` | `h`/`c` [2, N, 64] | 512 / 1024 / 1536 | 16 kHz |
 
-The revision is detected from the model's input names, so both are used through the same API:
+`VadModelKind.V5` is the input/output layout introduced by silero-vad v5; the v6.x models keep it, so the bundled
+v6.3 model and any v5/v6 model you load yourself are all `V5`. The revision is detected from the model's input names,
+so every model is used through the same API:
 
 ```csharp
-using var latest = new Vad();                              // bundled v5 model
+using var latest = new Vad();                              // bundled v6.3 model (v5 layout)
 using var legacy = new Vad(VadModelKind.V4);               // bundled v4 model
 using var custom = new Vad("path/to/silero_vad.onnx");     // your own model
 ```
+
+Notes on the v6.3 model:
+
+* Compared to v6.2 it finds short pauses inside speech more reliably, closes speech faster and gives fewer false
+  positives on noise. At the same `Threshold` it is slightly stricter, so re-check a threshold tuned for v6.2.
+* Upstream also ships [`silero_vad_16k_op15.onnx`](https://github.com/snakers4/silero-vad/tree/v6.3/src/silero_vad/data),
+  a 16 kHz only export without `If` nodes. It gives the same probabilities at 16 kHz and may suit execution
+  providers that handle control flow poorly (DirectML, QNN, TensorRT, WebGPU). Load it with
+  `new Vad("silero_vad_16k_op15.onnx")` and only feed it 16 kHz audio (or a multiple of 16 kHz): it ignores the
+  `sr` input, so 8 kHz audio would give wrong results.
 
 > **Before you run:** your application has to reference **one** ONNX Runtime package — see
 > [Runtime package](#runtime-package-required). The library itself only depends on the managed runtime.
@@ -49,7 +61,9 @@ specifics. The historical overload still works as before:
 
 * **Batch detection** – `Vad.GetSpeechTimestamps(audio, new VadOptions { ... })` returns the speech chunks of a
   whole recording.
-* **Speech probabilities** – `Vad.GetSpeechProbabilities(audio)` exposes the raw per-window model output.
+* **Speech probabilities** – `Vad.GetSpeechProbabilities(audio)` exposes the raw per-window model output, and
+  `Vad.GetSpeechTimestampsFromProbabilities(probabilities, options, audio.Length)` turns it into speech chunks
+  without running the model again (handy to tune `Threshold` and the durations on the same audio).
 * **Streaming** – `Vad.CreateStream()` detects speech incrementally, as audio arrives:
 
   ```csharp
@@ -68,8 +82,9 @@ specifics. The historical overload still works as before:
 * **Model control** – `VadModel`/`VadState` give direct access to the model and to the recurrent state for
   custom pipelines and batches.
 
-`VadOptions` carries the tunables (`Threshold`, `MinSpeechDurationMs`, `MinSilenceDurationMs`,
-`MaxSpeechDurationSeconds`, `SpeechPadMs`, `WindowSizeSamples`, ...). Its defaults match the historical
+`VadOptions` carries the tunables (`Threshold`, `NegThreshold`, `MinSpeechDurationMs`, `MinSilenceDurationMs`,
+`MaxSpeechDurationSeconds`, `SpeechPadMs`, `WindowSizeSamples`, ...). `NegThreshold` is the exit threshold that
+ends speech; it defaults to `max(Threshold - 0.15, 0.01)`, like the reference implementation. Its defaults match the historical
 `GetSpeechTimestamps` overload, so switching between the two does not change results.
 
 ## Runtime package (required)
@@ -98,7 +113,7 @@ Add one runtime package to the application, with the **same version as the manag
 
 ### Platform support
 
-The library is pure managed code and ships plain `net8.0` / `net9.0` / `net10.0` assets, which are exactly what
+The library is pure managed code and ships plain `net8.0` / `net9.0` / `net10.0` / `net11.0` assets, which are exactly what
 `net8.0-android`, `net9.0-ios`, `net10.0-windows` and the other platform specific target frameworks consume
 (NuGet picks the best asset of every package separately), so no platform specific target is published.
 
@@ -201,6 +216,15 @@ The historical API is unchanged and keeps working:
   `VadHelper.GetSpeechSamples` keep their original signatures.
 * `new Vad(VadModelKind.V4)` restores the previous behaviour exactly, including the previous window sizes.
 
+Changes in 2.2.0 (silero-vad v6.3):
+
+* The bundled `silero_vad.onnx` is the v6.3 model (it was v6.2). Inputs and outputs are unchanged.
+* `MaxSpeechDurationSeconds`: when a chunk is cut with no silence to split at and speech goes on, the next chunk
+  now starts at the cut. Previously the window at the cut was dropped.
+* `VadStream`: with a large `SpeechPadMs` the left pad no longer reaches back into the previous segment, so
+  streamed segments never overlap.
+* New `VadOptions.NegThreshold`, `Vad.GetSpeechTimestampsFromProbabilities` and the `net11.0` target.
+
 Fixed along the way: a segment that was still open at the end of the audio was dropped when it started in the
 very first window (`current_speech.Start > 0` instead of "a segment is open" in the reference implementation).
 Audio that begins with speech now reports that segment, which is most visible with the 512 sample windows of
@@ -213,7 +237,8 @@ dotnet build --configuration Release
 dotnet test  --configuration Release
 ```
 
-The test suite (`SileroVad.Tests`) runs on `net8.0`, `net9.0` and `net10.0` and checks both model revisions
+Building needs the .NET 11 SDK (see `global.json`). The test suite (`SileroVad.Tests`) runs on `net8.0`, `net9.0`,
+`net10.0` and `net11.0` and checks both model revisions
 against real speech audio: detection quality, silence handling, sample rates, streaming/batch parity and the
 legacy API surface.
 

@@ -1,28 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Authors>Dzmitry Shchamialiou</Authors>
-		<PackageProjectUrl>https://github.com/DimQ1/SileroVad</PackageProjectUrl>
-		<RepositoryType>git</RepositoryType>
-		<RepositoryUrl>https://github.com/DimQ1/SileroVad.git</RepositoryUrl>
-		<RepositoryBranch>master</RepositoryBranch>
+		<!-- Shared properties (target frameworks, authors, repository) come from Directory.Build.props. -->
+		<TargetFrameworks>$(SileroVadTargetFrameworks)</TargetFrameworks>
+		<IsPackable>true</IsPackable>
 		<EnablePackageValidation>true</EnablePackageValidation>
-		<!--
-			net8.0 is the lowest target the managed ONNX Runtime package ships (it also ships netstandard2.0 and
-			mobile assets); net8/9 consumers get their own asset, net10 consumers use the net10.0 one.
-		-->
-		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<AssemblyVersion>2.1.0.0</AssemblyVersion>
-		<FileVersion>2.1.0.0</FileVersion>
-		<PackageVersion>2.1.0</PackageVersion>
+		<AssemblyVersion>2.2.0.0</AssemblyVersion>
+		<FileVersion>2.2.0.0</FileVersion>
+		<PackageVersion>2.2.0</PackageVersion>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<PackageTags>vad, library, onnx, silero</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<Description>Voice activity detection for .NET using the Silero VAD ONNX models (v5 and v4). Add one ONNX Runtime package with the same version as Microsoft.ML.OnnxRuntime.Managed (Microsoft.ML.OnnxRuntime for CPU, .Gpu for CUDA, .DirectML, .QNN, ...) and choose the execution provider through the VadExecutionProviders helpers.</Description>
+		<Description>Voice activity detection for .NET using the Silero VAD ONNX models (v6.3, with the v5 layout, and the legacy v4). Add one ONNX Runtime package with the same version as Microsoft.ML.OnnxRuntime.Managed (Microsoft.ML.OnnxRuntime for CPU, .Gpu for CUDA, .DirectML, .QNN, ...) and choose the execution provider through the VadExecutionProviders helpers.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -34,7 +25,7 @@
 			VadRuntime.EnsureNativeRuntimeAvailable() reports a missing or mismatched runtime with a
 			clear message instead of letting ONNX Runtime crash the process.
 		-->
-		<PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.30.0" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" />
 	</ItemGroup>
 
 	<ItemGroup>

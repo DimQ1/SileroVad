@@ -28,6 +28,6 @@ out of the box.
 
 * `VadOptions.SampleRate` must describe the audio you pass in. The detector accepts 8000, 16000 and multiples
   of 16000 Hz; `SileroVad.Samples` resamples everything else to 16 kHz with NAudio.
-* mp3: this sample targets `net10.0` and handles `.wav`. `Mp3FileReader` lives in `NAudio.WinMM` on NAudio 3.x,
-  so supporting mp3 needs a Windows target framework (`net10.0-windows`) and the `NAudio` metapackage.
+* mp3: this sample targets `net11.0` and handles `.wav`. `Mp3FileReader` lives in `NAudio.WinMM` on NAudio 3.x,
+  so supporting mp3 needs a Windows target framework (`net11.0-windows`) and the `NAudio` metapackage.
 * Output is written next to the input file as `<name>.speech.wav`.

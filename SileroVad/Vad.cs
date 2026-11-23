@@ -8,7 +8,7 @@ namespace SileroVad
     /// </summary>
     /// <remarks>
     /// <para>
-    /// By default the instance uses the latest bundled model (v5). Pass <see cref="VadModelKind.V4"/> or your
+    /// By default the instance uses the latest bundled model (silero-vad v6.3, <see cref="VadModelKind.V5"/> layout). Pass <see cref="VadModelKind.V4"/> or your
     /// own model bytes / file to use a different model.
     /// </para>
     /// <para>
@@ -27,7 +27,7 @@ namespace SileroVad
         private readonly bool _ownsModel;
         private bool disposedValue;
 
-        /// <summary>Creates a detector using the bundled v5 model.</summary>
+        /// <summary>Creates a detector using the bundled silero-vad v6.3 model (<see cref="VadModelKind.V5"/> layout).</summary>
         public Vad() : this(VadModelKind.V5)
         {
         }
@@ -217,6 +217,67 @@ namespace SileroVad
             => GetSpeechProbabilities((ReadOnlySpan<float>)audio, options);
 
         /// <summary>
+        /// Splits audio into speech chunks from probabilities computed earlier by
+        /// <see cref="GetSpeechProbabilities(System.ReadOnlySpan{float}, VadOptions?)"/>, without running the model again.
+        /// </summary>
+        /// <remarks>
+        /// Use it to try several thresholds or durations on the same audio: the model runs once and only the cheap
+        /// segmentation is repeated. Pass the same <see cref="VadOptions.SampleRate"/> and
+        /// <see cref="VadOptions.WindowSizeSamples"/> that produced the probabilities; with the same options the result
+        /// equals <see cref="GetSpeechTimestamps(System.ReadOnlySpan{float}, VadOptions)"/>. This mirrors
+        /// <c>get_speech_timestamps_from_probs</c> of the reference implementation.
+        /// </remarks>
+        /// <param name="probabilities">One speech probability per window, in chronological order.</param>
+        /// <param name="options">Detection options.</param>
+        /// <param name="audioLengthSamples">
+        /// Length of the original audio in samples at <see cref="VadOptions.SampleRate"/>. It bounds the padding of the
+        /// last segment. <see langword="null"/> assumes the windows cover the audio exactly
+        /// (<c>probabilities.Length * window size</c>).
+        /// </param>
+        /// <returns>Speech chunks with start and end positions expressed in samples of the original audio.</returns>
+        public List<VadSpeech> GetSpeechTimestampsFromProbabilities(
+            ReadOnlySpan<float> probabilities,
+            VadOptions options,
+            int? audioLengthSamples = null)
+        {
+            ArgumentNullException.ThrowIfNull(options);
+            options.Validate();
+
+            if (audioLengthSamples is < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(audioLengthSamples), audioLengthSamples, "Audio length cannot be negative.");
+            }
+
+            var modelRate = VadModel.EffectiveSampleRate(options.SampleRate);
+            var step = options.SampleRate / modelRate;
+            var windowSize = ResolveWindowSize(options, modelRate);
+
+            // Length of the audio the model saw: decimated the same way as PrepareAudio does it.
+            var modelLength = audioLengthSamples is { } length
+                ? (length + step - 1) / step
+                : probabilities.Length * windowSize;
+
+            return Segment(probabilities, options, windowSize, modelRate, modelLength, step);
+        }
+
+        /// <summary>
+        /// Splits audio into speech chunks from probabilities computed earlier by
+        /// <see cref="GetSpeechProbabilities(System.ReadOnlySpan{float}, VadOptions?)"/>, without running the model again.
+        /// </summary>
+        /// <param name="probabilities">One speech probability per window, in chronological order.</param>
+        /// <param name="options">Detection options.</param>
+        /// <param name="audioLengthSamples">
+        /// Length of the original audio in samples at <see cref="VadOptions.SampleRate"/>; <see langword="null"/>
+        /// assumes the windows cover the audio exactly.
+        /// </param>
+        /// <returns>Speech chunks with start and end positions expressed in samples of the original audio.</returns>
+        public List<VadSpeech> GetSpeechTimestampsFromProbabilities(
+            float[] probabilities,
+            VadOptions options,
+            int? audioLengthSamples = null)
+            => GetSpeechTimestampsFromProbabilities((ReadOnlySpan<float>)probabilities, options, audioLengthSamples);
+
+        /// <summary>
         /// Creates a stateful detector that processes audio incrementally, as it arrives.
         /// </summary>
         /// <param name="options">Detection options; <see cref="VadOptions.SampleRate"/> describes the pushed audio.</param>
@@ -239,6 +300,22 @@ namespace SileroVad
             var windowSize = ResolveWindowSize(options, modelRate);
             var probabilities = ComputeProbabilities(signal, windowSize, modelRate);
 
+            return Segment(probabilities, options, windowSize, modelRate, signal.Length, step);
+        }
+
+        /// <summary>
+        /// Turns per-window probabilities into padded speech chunks.
+        /// </summary>
+        /// <param name="modelLength">Length of the audio fed to the model, in samples at <paramref name="modelRate"/>.</param>
+        /// <param name="step">Decimation factor between the caller's audio and the model's audio.</param>
+        private static List<VadSpeech> Segment(
+            ReadOnlySpan<float> probabilities,
+            VadOptions options,
+            int windowSize,
+            int modelRate,
+            int modelLength,
+            int step)
+        {
             var segmenter = new VadSegmenter(windowSize, modelRate, options);
             var speeches = new List<VadSpeech>();
             for (var i = 0; i < probabilities.Length; i++)
@@ -246,8 +323,8 @@ namespace SileroVad
                 segmenter.Append(probabilities[i], i, speeches);
             }
 
-            segmenter.Complete(signal.Length, speeches);
-            VadSegmenter.ApplySpeechPadding(speeches, signal.Length, segmenter.SpeechPadSamples);
+            segmenter.Complete(modelLength, speeches);
+            VadSegmenter.ApplySpeechPadding(speeches, modelLength, segmenter.SpeechPadSamples);
 
             if (step > 1)
             {
